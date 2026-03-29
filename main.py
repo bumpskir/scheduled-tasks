@@ -16,23 +16,58 @@ import os
 MY_EMAIL = os.environ.get("MY_EMAIL")
 MY_PASSWORD = os.environ.get("MY_PASSWORD")
 
-today = datetime.now()
-today_tuple = (today.month, today.day)
+##################### Extra Hard Starting Project Functions ######################
 
-data = pandas.read_csv("birthdays.csv")
-birthdays_dict = {(data_row["month"], data_row["day"])                  : data_row for (index, data_row) in data.iterrows()}
-if today_tuple in birthdays_dict:
-    birthday_person = birthdays_dict[today_tuple]
-    file_path = f"letter_templates/letter_{random.randint(1, 3)}.txt"
-    with open(file_path) as letter_file:
-        contents = letter_file.read()
-        contents = contents.replace("[NAME]", birthday_person["name"])
-
-    with smtplib.SMTP("YOUR EMAIL PROVIDER SMTP SERVER ADDRESS") as connection:
+def send_email(email, letter):
+    my_email = 'wdavern@gmail.com'
+    # This is for gmail
+    app_password = "iysj adhq xton czjf" #input('Enter your password: ')
+    # Put the subject in the first part of the message with 2 line breaks
+    messy = letter.encode('ascii', errors='ignore')
+    mess = messy.decode('utf-8')
+    message = f"Subject:Hello from Bills Python\n\n{mess}"
+    print(f"the message is {message.strip()}")
+    to_email = email
+    # When using with you don't need to do a connection.close()
+    with smtplib.SMTP('smtp.gmail.com', 587) as connection:
         connection.starttls()
-        connection.login(MY_EMAIL, MY_PASSWORD)
-        connection.sendmail(
-            from_addr=MY_EMAIL,
-            to_addrs=birthday_person["email"],
-            msg=f"Subject:Happy Birthday!\n\n{contents}"
-        )
+        connection.login(MY_EMAIL,MY_PASSWORD)
+        connection.sendmail(from_addr=my_email,to_addrs=to_email, msg=message)
+
+def get_letter(row):
+    name = row[0]
+    letters = ["letter_1.txt", "letter_2.txt", "letter_3.txt"]
+    letter = f"letter_templates/{choice(letters)}"
+    message = ""
+    try:
+        with open(letter, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+            for line in lines:
+                if line.endswith('[NAME],\n'):
+                    print("Inside line.endwith")
+                    message += line.replace('[NAME]', name)
+                else:
+                    message += line
+        return message
+
+    except FileNotFoundError:
+        print("Couldn't find {letter} file")
+        return False
+
+
+def main():
+    now = dt.datetime.now()
+    day = now.day
+    month = now.month
+
+    with open('birthdays.csv', 'r', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        next(reader)
+        for row in reader:
+            # If today is someones birthday, send them an email!
+            if int(row[3])  == int(month) and int(row[4]) == int(day):
+                message = get_letter(row)
+                send_email(row[1], message)
+
+if __name__ == '__main__':
+    main()
